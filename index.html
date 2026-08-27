@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ET Asset Batch Tool</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>East Troy Asset Batch Tool</h1>
+  <p>Scan asset tags and serial numbers, review, and export a CSV. Everything runs in this browser — no photos or data are ever uploaded anywhere.</p>
+</header>
+
+<main>
+  <section id="capture-section">
+    <div class="mode-toggle">
+      <button type="button" id="mode-camera-btn">Live Camera</button>
+      <button type="button" id="mode-upload-btn">Upload Photos</button>
+    </div>
+
+    <div id="camera-panel">
+      <video id="camera-video" autoplay playsinline muted></video>
+      <div class="camera-controls">
+        <button type="button" id="start-camera-btn">Start Camera</button>
+        <button type="button" id="stop-camera-btn" hidden>Stop Camera</button>
+        <button type="button" id="snap-btn" hidden>Capture Photo</button>
+      </div>
+    </div>
+
+    <div id="upload-panel" hidden>
+      <div class="upload-controls">
+        <input type="file" id="file-input" multiple accept="image/*" capture="environment">
+      </div>
+    </div>
+
+    <p id="processing-status"></p>
+  </section>
+
+  <section id="detections-section">
+    <h2>Pending Detections</h2>
+    <div id="detections-list"></div>
+  </section>
+
+  <section id="draft-section">
+    <h2>Current Asset</h2>
+    <form id="draft-form">
+      <label class="full-width">Company
+        <input type="text" value="East Troy Community School District" readonly>
+      </label>
+      <label>Asset Tag
+        <input type="text" id="draft-tag" placeholder="e.g. 4821">
+      </label>
+      <label>Serial
+        <input type="text" id="draft-serial" placeholder="Manufacturer serial">
+      </label>
+      <label>Model
+        <select id="draft-model"></select>
+      </label>
+      <label>Status
+        <select id="draft-status">
+          <option value="">Select status…</option>
+          <option value="Archived">Archived</option>
+          <option value="Pending">Pending</option>
+          <option value="Ready to Deploy">Ready to Deploy</option>
+        </select>
+      </label>
+      <label>Checkout Type
+        <select id="draft-checkout-type">
+          <option value="">None</option>
+          <option value="Person">Person</option>
+          <option value="Asset">Asset</option>
+          <option value="Location">Location</option>
+        </select>
+      </label>
+      <label>Checkout To
+        <input type="text" id="draft-checkout-to" placeholder="Name / asset tag / location">
+      </label>
+      <div class="draft-actions">
+        <button type="submit">Add to Batch</button>
+        <button type="button" id="clear-draft-btn">Clear</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="batch-section">
+    <h2>Batch (<span id="batch-count">0</span>)</h2>
+    <table id="batch-table">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Asset Tag</th>
+          <th>Serial</th>
+          <th>Model</th>
+          <th>Status</th>
+          <th>Checkout Type</th>
+          <th>Checkout To</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="batch-actions">
+      <button type="button" id="export-csv-btn">Export CSV</button>
+      <button type="button" id="clear-batch-btn">Clear Batch</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Batch data is kept only in this browser (localStorage) until you export or clear it. Photos are never saved.
+</footer>
+
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="js/models.js"></script>
+<script src="js/scanner.js"></script>
+<script src="js/csv.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
