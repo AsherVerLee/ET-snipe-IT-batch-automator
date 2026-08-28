@@ -13,13 +13,6 @@ A static, browser-only web app for East Troy Community School District IT staff 
 5. Repeat for each asset. The batch table lets you edit or delete rows before exporting.
 6. **Export CSV** downloads a file formatted for Snipe-IT's asset import.
 
-## Deploying to GitHub Pages
-
-1. Push this repo to GitHub.
-2. In the repo settings, go to **Pages** → **Build and deployment** → **Deploy from a branch** → select the branch and `/ (root)`.
-3. The site will be published at `https://<org>.github.io/<repo>/`.
-
-No build step is required — it's plain HTML/CSS/JS.
 
 ## Editing the model list
 
