@@ -1,5 +1,9 @@
 const COMPANY_NAME = "East Troy Community School District";
 const BATCH_STORAGE_KEY = "etAssetBatch";
+const CAPTURE_COOLDOWN_MS = 1500;
+const AUTO_DUPLICATE_SUPPRESS_MS = 4000;
+const BARCODE_TICK_MS = 350;
+const OCR_TICK_MS = 1200;
 
 const state = {
   detections: [], // { id, text, type, thumbUrl }
@@ -12,6 +16,7 @@ const el = {
   cameraPanel: document.getElementById("camera-panel"),
   uploadPanel: document.getElementById("upload-panel"),
   video: document.getElementById("camera-video"),
+  guide: document.getElementById("scan-guide"),
   startCameraBtn: document.getElementById("start-camera-btn"),
   stopCameraBtn: document.getElementById("stop-camera-btn"),
   snapBtn: document.getElementById("snap-btn"),
@@ -33,6 +38,12 @@ const el = {
 };
 
 let cameraStream = null;
+let scanLoopActive = false;
+let barcodeBusy = false;
+let ocrBusy = false;
+let lastCaptureAt = 0;
+let lastAutoText = null;
+let lastAutoAt = 0;
 
 function setStatus(message) {
   el.status.textContent = message;
@@ -76,18 +87,24 @@ el.modeUploadBtn.addEventListener("click", () => setMode("upload"));
 async function startCamera() {
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+      video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
     });
     el.video.srcObject = cameraStream;
     el.startCameraBtn.hidden = true;
     el.stopCameraBtn.hidden = false;
     el.snapBtn.hidden = false;
+    lastAutoText = null;
+    scanLoopActive = true;
+    scheduleBarcodeTick();
+    scheduleOcrTick();
+    setStatus("Camera on — point it at a barcode or label.");
   } catch (err) {
     setStatus("Camera access failed: " + err.message);
   }
 }
 
 function stopCamera() {
+  scanLoopActive = false;
   if (cameraStream) {
     cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
@@ -98,17 +115,110 @@ function stopCamera() {
   el.snapBtn.hidden = true;
 }
 
-async function captureFromCamera() {
-  const canvas = document.createElement("canvas");
-  canvas.width = el.video.videoWidth;
-  canvas.height = el.video.videoHeight;
-  canvas.getContext("2d").drawImage(el.video, 0, 0);
-  await processImageSource(canvas.toDataURL("image/jpeg", 0.85));
-}
-
 el.startCameraBtn.addEventListener("click", startCamera);
 el.stopCameraBtn.addEventListener("click", stopCamera);
-el.snapBtn.addEventListener("click", captureFromCamera);
+el.snapBtn.addEventListener("click", async () => {
+  if (!el.video.videoWidth) return;
+  const canvas = getGuideCropCanvas();
+  if (!canvas) return;
+  lastCaptureAt = Date.now();
+  await processImageSource(canvas);
+});
+
+// Crops the video's current frame down to whatever rectangle the on-screen
+// guide box covers — this is what turns garbage full-frame OCR into a
+// reliable read: the model only ever sees the label, not the whole photo.
+function getGuideCropCanvas() {
+  if (!el.video.videoWidth || !el.video.videoHeight) return null;
+  const videoRect = el.video.getBoundingClientRect();
+  const guideRect = el.guide.getBoundingClientRect();
+  if (videoRect.width === 0 || videoRect.height === 0) return null;
+
+  const scaleX = el.video.videoWidth / videoRect.width;
+  const scaleY = el.video.videoHeight / videoRect.height;
+  const sx = Math.max(0, (guideRect.left - videoRect.left) * scaleX);
+  const sy = Math.max(0, (guideRect.top - videoRect.top) * scaleY);
+  const sw = Math.min(el.video.videoWidth - sx, guideRect.width * scaleX);
+  const sh = Math.min(el.video.videoHeight - sy, guideRect.height * scaleY);
+  if (sw <= 0 || sh <= 0) return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = sw;
+  canvas.height = sh;
+  canvas.getContext("2d").drawImage(el.video, sx, sy, sw, sh, 0, 0, sw, sh);
+  return canvas;
+}
+
+function flashCaptureFeedback() {
+  el.guide.classList.add("captured-flash");
+  if (navigator.vibrate) navigator.vibrate(80);
+  setTimeout(() => el.guide.classList.remove("captured-flash"), 350);
+}
+
+function scheduleBarcodeTick() {
+  if (!scanLoopActive) return;
+  setTimeout(async () => {
+    if (
+      scanLoopActive &&
+      !barcodeBusy &&
+      !ocrBusy &&
+      Date.now() - lastCaptureAt > CAPTURE_COOLDOWN_MS
+    ) {
+      barcodeBusy = true;
+      try {
+        const canvas = getGuideCropCanvas();
+        if (canvas) {
+          const img = await canvasToImage(canvas);
+          const text = await scanBarcode(img);
+          if (text) await handleAutoCapture(canvas, text, "barcode");
+        }
+      } finally {
+        barcodeBusy = false;
+      }
+    }
+    scheduleBarcodeTick();
+  }, BARCODE_TICK_MS);
+}
+
+function scheduleOcrTick() {
+  if (!scanLoopActive) return;
+  setTimeout(async () => {
+    if (
+      scanLoopActive &&
+      !ocrBusy &&
+      !barcodeBusy &&
+      Date.now() - lastCaptureAt > CAPTURE_COOLDOWN_MS
+    ) {
+      ocrBusy = true;
+      try {
+        const canvas = getGuideCropCanvas();
+        if (canvas) {
+          const processed = preprocessForOcr(canvas);
+          const text = await scanText(processed);
+          if (text && looksValidOcr(text)) {
+            await handleAutoCapture(canvas, text, "ocr");
+          }
+        }
+      } finally {
+        ocrBusy = false;
+      }
+    }
+    scheduleOcrTick();
+  }, OCR_TICK_MS);
+}
+
+async function handleAutoCapture(canvas, text, method) {
+  if (text === lastAutoText && Date.now() - lastAutoAt < AUTO_DUPLICATE_SUPPRESS_MS) {
+    return; // still pointed at the same label — don't re-add it
+  }
+  lastAutoText = text;
+  lastAutoAt = Date.now();
+  lastCaptureAt = Date.now();
+  flashCaptureFeedback();
+  const type = classifyDetection(text);
+  setStatus(`Auto-captured "${text}" via ${method}.`);
+  addDetection({ text, type, thumbUrl: canvas.toDataURL("image/jpeg", 0.85), method });
+}
 
 // --- Upload --------------------------------------------------------------
 
@@ -117,24 +227,29 @@ el.fileInput.addEventListener("change", async () => {
   el.fileInput.value = "";
   for (const file of files) {
     const dataUrl = await readFileAsDataUrl(file);
-    await processImageSource(dataUrl);
+    const img = await loadImage(dataUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    await processImageSource(canvas);
   }
 });
 
 // --- Extraction pipeline ---------------------------------------------------
 
-async function processImageSource(dataUrl) {
+async function processImageSource(canvas) {
   setStatus("Processing photo…");
-  const img = await loadImage(dataUrl);
-  const { text, method } = await extractFromImage(img);
+  const { text, method } = await extractFromImage(canvas);
+  const thumbUrl = canvas.toDataURL("image/jpeg", 0.85);
   if (!text) {
     setStatus("No barcode or text detected — enter the value manually below.");
-    addDetection({ text: "", type: "unknown", thumbUrl: dataUrl, method });
+    addDetection({ text: "", type: "unknown", thumbUrl, method });
     return;
   }
   const type = classifyDetection(text);
   setStatus(`Detected "${text}" via ${method}.`);
-  addDetection({ text, type, thumbUrl: dataUrl, method });
+  addDetection({ text, type, thumbUrl, method });
 }
 
 function addDetection(detection) {

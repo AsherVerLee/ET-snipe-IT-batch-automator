@@ -20,11 +20,21 @@
     </div>
 
     <div id="camera-panel">
-      <video id="camera-video" autoplay playsinline muted></video>
+      <div class="camera-frame">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="scan-guide" id="scan-guide">
+          <span class="corner corner-tl"></span>
+          <span class="corner corner-tr"></span>
+          <span class="corner corner-bl"></span>
+          <span class="corner corner-br"></span>
+          <span class="scan-line"></span>
+        </div>
+        <p class="scan-hint">Align the barcode or label text inside the frame</p>
+      </div>
       <div class="camera-controls">
         <button type="button" id="start-camera-btn">Start Camera</button>
         <button type="button" id="stop-camera-btn" hidden>Stop Camera</button>
-        <button type="button" id="snap-btn" hidden>Capture Photo</button>
+        <button type="button" id="snap-btn" hidden>Capture Manually</button>
       </div>
     </div>
 

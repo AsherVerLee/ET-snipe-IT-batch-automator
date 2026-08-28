@@ -1,13 +1,15 @@
 :root {
-  --bg: #0f172a;
-  --panel: #1e293b;
-  --border: #334155;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --danger: #ef4444;
-  --success: #22c55e;
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --panel-raised: #1c1a16;
+  --border: #2e2a20;
+  --text: #f2ede1;
+  --muted: #a89f8c;
+  --gold: #d4af37;
+  --gold-bright: #f2cd5c;
+  --gold-dim: #8a7226;
+  --danger: #b3432b;
+  --success: #3f8f5c;
 }
 
 * {
@@ -19,43 +21,52 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
 
 header {
   padding: 1.5rem 1rem 1rem;
   text-align: center;
+  border-bottom: 1px solid var(--border);
 }
 
 header h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
+  margin: 0 0 0.35rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+  color: var(--gold-bright);
 }
 
 header p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  max-width: 480px;
+  margin-inline: auto;
 }
 
 main {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 1rem 3rem;
+  padding: 1rem 0.75rem 3rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 section {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1rem;
 }
 
 section h2 {
   margin-top: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .mode-toggle {
@@ -69,39 +80,148 @@ section h2 {
 }
 
 button {
-  background: var(--accent);
-  color: white;
+  background: var(--gold);
+  color: #16130a;
   border: none;
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
+  min-height: 44px;
 }
 
-button:hover {
-  background: var(--accent-hover);
+button:active {
+  background: var(--gold-bright);
 }
 
 button.active {
-  background: var(--accent-hover);
-  box-shadow: inset 0 0 0 2px #93c5fd;
+  background: var(--gold-bright);
+  box-shadow: inset 0 0 0 2px #16130a;
 }
 
 button[data-action="delete"],
 #clear-batch-btn {
   background: var(--danger);
+  color: var(--text);
 }
 
-button[data-action="discard"] {
+button[data-action="discard"],
+#clear-draft-btn,
+#stop-camera-btn {
   background: transparent;
+  color: var(--text);
   border: 1px solid var(--border);
+}
+
+/* --- Camera + scan guide -------------------------------------------- */
+
+.camera-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 70vh;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 #camera-video {
   width: 100%;
-  max-height: 60vh;
-  background: black;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scan-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 78%;
+  height: 26%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
   border-radius: 8px;
+  pointer-events: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.scan-guide.captured-flash {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3), 0 0 0 3px var(--gold-bright);
+}
+
+.corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--gold);
+}
+
+.corner-tl {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 6px;
+}
+
+.corner-tr {
+  top: -2px;
+  right: -2px;
+  border-left: none;
+  border-bottom: none;
+  border-top-right-radius: 6px;
+}
+
+.corner-bl {
+  bottom: -2px;
+  left: -2px;
+  border-right: none;
+  border-top: none;
+  border-bottom-left-radius: 6px;
+}
+
+.corner-br {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 6px;
+}
+
+.scan-line {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+  box-shadow: 0 0 8px var(--gold-bright);
+  animation: scan-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0% {
+    top: 6%;
+  }
+  50% {
+    top: 90%;
+  }
+  100% {
+    top: 6%;
+  }
+}
+
+.scan-hint {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
 
 .camera-controls,
@@ -112,16 +232,22 @@ button[data-action="discard"] {
   flex-wrap: wrap;
 }
 
+.camera-controls button,
+.upload-controls input {
+  flex: 1;
+  min-width: 140px;
+}
+
 #processing-status {
   margin-top: 0.75rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--muted);
   min-height: 1.2em;
 }
 
 .empty-hint {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 #detections-list {
@@ -134,37 +260,44 @@ button[data-action="discard"] {
   display: flex;
   gap: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem;
+  background: var(--panel-raised);
+  border-radius: 10px;
+  padding: 0.6rem;
   align-items: flex-start;
 }
 
 .detection-thumb {
-  width: 90px;
-  height: 90px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 
 .detection-body {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
 .detection-text {
-  padding: 0.4rem;
+  padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
+  font-size: 1rem;
+  width: 100%;
 }
 
 .detection-badge {
-  font-size: 0.75rem;
-  color: var(--muted);
+  font-size: 0.72rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .detection-actions {
@@ -174,32 +307,44 @@ button[data-action="discard"] {
 }
 
 .detection-actions button {
-  font-size: 0.8rem;
-  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  padding: 0.5rem 0.6rem;
+  min-height: 38px;
 }
 
 #draft-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 #draft-form label {
   display: flex;
   flex-direction: column;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--muted);
-  gap: 0.25rem;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 #draft-form input,
 #draft-form select {
-  padding: 0.5rem;
-  border-radius: 6px;
+  padding: 0.6rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--panel-raised);
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+}
+
+#draft-form input:focus,
+#draft-form select:focus {
+  outline: none;
+  border-color: var(--gold);
 }
 
 #draft-form .full-width {
@@ -212,15 +357,14 @@ button[data-action="discard"] {
   gap: 0.5rem;
 }
 
-.draft-actions button[type="button"] {
-  background: transparent;
-  border: 1px solid var(--border);
+.draft-actions button {
+  flex: 1;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   overflow-x: auto;
   display: block;
 }
@@ -228,9 +372,14 @@ table {
 th,
 td {
   border: 1px solid var(--border);
-  padding: 0.4rem;
+  padding: 0.45rem;
   text-align: left;
   white-space: nowrap;
+}
+
+th {
+  color: var(--gold);
+  background: var(--panel-raised);
 }
 
 td input {
@@ -239,17 +388,61 @@ td input {
   border: none;
   color: var(--text);
   font-size: 0.85rem;
+  min-height: 32px;
+}
+
+td input:focus {
+  outline: 1px solid var(--gold);
+  border-radius: 4px;
 }
 
 .batch-actions {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.batch-actions button {
+  flex: 1;
+  min-width: 140px;
 }
 
 footer {
   text-align: center;
   color: var(--muted);
-  font-size: 0.8rem;
-  padding-bottom: 2rem;
+  font-size: 0.75rem;
+  padding: 1rem 1rem 2rem;
+}
+
+/* --- Mobile-first breakpoints ---------------------------------------- */
+
+@media (max-width: 640px) {
+  #draft-form {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-actions {
+    flex-direction: column;
+  }
+
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  section {
+    padding: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .camera-frame {
+    aspect-ratio: 3 / 4;
+    max-height: 60vh;
+  }
+}
+
+@media (min-width: 641px) {
+  main {
+    padding: 1.5rem 1rem 3rem;
+  }
 }

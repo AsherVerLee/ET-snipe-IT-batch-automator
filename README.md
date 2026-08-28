@@ -7,11 +7,12 @@ A static, browser-only web app for East Troy Community School District IT staff 
 ## How it works
 
 1. Choose **Live Camera** (phones/tablets in the field) or **Upload Photos** (bulk upload from a camera roll on desktop).
-2. Each photo is scanned for a barcode first (`ZXing`), then falls back to OCR (`Tesseract.js`) if no barcode is found.
-3. A detected 4-digit number is assumed to be the **Asset Tag**; anything else is assumed to be the **Serial**. If a slot is already filled, the result shows up as a "Pending Detection" card so you can assign it manually.
-4. Fill in **Model** and **Status** (and optional checkout info), then **Add to Batch**.
-5. Repeat for each asset. The batch table lets you edit or delete rows before exporting.
-6. **Export CSV** downloads a file formatted for Snipe-IT's asset import.
+2. In Live Camera mode, align the barcode or label text inside the on-screen guide box. The app continuously scans that cropped region — a barcode is checked every ~350ms and OCR every ~1.2s — and **auto-captures** as soon as it gets a confident read (a gold flash + a short vibration confirm it). A "Capture Manually" button is always available as a fallback for tricky labels.
+3. Every capture (live or uploaded) is scanned for a barcode first (`ZXing`), then falls back to OCR (`Tesseract.js`) if no barcode is found. Before OCR runs, the image is cropped to the guide box, grayscaled, contrast-stretched, and upscaled 3x — this is the fix for OCR reading garbage off a whole, low-contrast phone photo instead of just the label. It's not a training-data issue: Tesseract ships pretrained; framing and contrast are what make or break accuracy.
+4. A detected 4-digit number is assumed to be the **Asset Tag**; anything else is assumed to be the **Serial**. If a slot is already filled, the result shows up as a "Pending Detection" card so you can assign it manually.
+5. Fill in **Model** and **Status** (and optional checkout info), then **Add to Batch**.
+6. Repeat for each asset. The batch table lets you edit or delete rows before exporting.
+7. **Export CSV** downloads a file formatted for Snipe-IT's asset import.
 
 ## Deploying to GitHub Pages
 
