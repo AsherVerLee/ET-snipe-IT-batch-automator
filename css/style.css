@@ -69,6 +69,28 @@ section h2 {
   text-transform: uppercase;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
+.section-header button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  min-height: 36px;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
 .mode-toggle {
   display: flex;
   gap: 0.5rem;

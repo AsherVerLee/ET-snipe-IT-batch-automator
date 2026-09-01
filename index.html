@@ -28,7 +28,7 @@
           <span class="corner corner-bl"></span>
           <span class="corner corner-br"></span>
         </div>
-        <p class="scan-hint">Align the barcode or label text inside the frame</p>
+        <p class="scan-hint">Barcodes capture automatically. For text-only labels, align them and tap Capture Manually.</p>
       </div>
       <div class="camera-controls">
         <button type="button" id="start-camera-btn">Start Camera</button>
@@ -47,7 +47,10 @@
   </section>
 
   <section id="detections-section">
-    <h2>Pending Detections</h2>
+    <div class="section-header">
+      <h2>Pending Detections</h2>
+      <button type="button" id="clear-detections-btn">Clear All</button>
+    </div>
     <div id="detections-list"></div>
   </section>
 

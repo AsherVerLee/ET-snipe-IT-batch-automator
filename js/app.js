@@ -3,7 +3,6 @@ const BATCH_STORAGE_KEY = "etAssetBatch";
 const CAPTURE_COOLDOWN_MS = 1500;
 const AUTO_DUPLICATE_SUPPRESS_MS = 4000;
 const BARCODE_TICK_MS = 350;
-const OCR_TICK_MS = 1200;
 
 const state = {
   detections: [], // { id, text, type, thumbUrl }
@@ -31,6 +30,7 @@ const el = {
   draftCheckoutType: document.getElementById("draft-checkout-type"),
   draftCheckoutTo: document.getElementById("draft-checkout-to"),
   clearDraftBtn: document.getElementById("clear-draft-btn"),
+  clearDetectionsBtn: document.getElementById("clear-detections-btn"),
   batchCount: document.getElementById("batch-count"),
   batchTableBody: document.querySelector("#batch-table tbody"),
   exportCsvBtn: document.getElementById("export-csv-btn"),
@@ -40,7 +40,6 @@ const el = {
 let cameraStream = null;
 let scanLoopActive = false;
 let barcodeBusy = false;
-let ocrBusy = false;
 let lastCaptureAt = 0;
 let lastAutoText = null;
 let lastAutoAt = 0;
@@ -96,8 +95,7 @@ async function startCamera() {
     lastAutoText = null;
     scanLoopActive = true;
     scheduleBarcodeTick();
-    scheduleOcrTick();
-    setStatus("Camera on — point it at a barcode or label.");
+    setStatus("Camera on — barcodes capture automatically. For text-only labels, tap Capture Manually.");
   } catch (err) {
     setStatus("Camera access failed: " + err.message);
   }
@@ -161,7 +159,6 @@ function scheduleBarcodeTick() {
     if (
       scanLoopActive &&
       !barcodeBusy &&
-      !ocrBusy &&
       Date.now() - lastCaptureAt > CAPTURE_COOLDOWN_MS
     ) {
       barcodeBusy = true;
@@ -178,33 +175,6 @@ function scheduleBarcodeTick() {
     }
     scheduleBarcodeTick();
   }, BARCODE_TICK_MS);
-}
-
-function scheduleOcrTick() {
-  if (!scanLoopActive) return;
-  setTimeout(async () => {
-    if (
-      scanLoopActive &&
-      !ocrBusy &&
-      !barcodeBusy &&
-      Date.now() - lastCaptureAt > CAPTURE_COOLDOWN_MS
-    ) {
-      ocrBusy = true;
-      try {
-        const canvas = getGuideCropCanvas();
-        if (canvas) {
-          const processed = preprocessForOcr(canvas);
-          const text = await scanText(processed);
-          if (text && looksValidOcr(text)) {
-            await handleAutoCapture(canvas, text, "ocr");
-          }
-        }
-      } finally {
-        ocrBusy = false;
-      }
-    }
-    scheduleOcrTick();
-  }, OCR_TICK_MS);
 }
 
 async function handleAutoCapture(canvas, text, method) {
@@ -240,16 +210,21 @@ el.fileInput.addEventListener("change", async () => {
 
 async function processImageSource(canvas) {
   setStatus("Processing photo…");
-  const { text, method } = await extractFromImage(canvas);
+  const { candidates, method } = await extractFromImage(canvas);
   const thumbUrl = canvas.toDataURL("image/jpeg", 0.85);
-  if (!text) {
+  if (candidates.length === 0) {
     setStatus("No barcode or text detected — enter the value manually below.");
     addDetection({ text: "", type: "unknown", thumbUrl, method });
     return;
   }
-  const type = classifyDetection(text);
-  setStatus(`Detected "${text}" via ${method}.`);
-  addDetection({ text, type, thumbUrl, method });
+  setStatus(
+    candidates.length === 1
+      ? `Detected "${candidates[0]}" via ${method}.`
+      : `Found ${candidates.length} possible values via ${method} — pick the right one below.`
+  );
+  for (const text of candidates) {
+    addDetection({ text, type: classifyDetection(text), thumbUrl, method });
+  }
 }
 
 function addDetection(detection) {
@@ -394,6 +369,12 @@ function clearDraft(resetStickyFields = true) {
 }
 
 el.clearDraftBtn.addEventListener("click", () => clearDraft(true));
+
+el.clearDetectionsBtn.addEventListener("click", () => {
+  if (state.detections.length === 0) return;
+  state.detections = [];
+  renderDetections();
+});
 
 // --- Batch table -------------------------------------------------------
 
