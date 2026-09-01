@@ -189,28 +189,6 @@ button[data-action="discard"],
   border-bottom-right-radius: 6px;
 }
 
-.scan-line {
-  position: absolute;
-  left: 4%;
-  right: 4%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
-  box-shadow: 0 0 8px var(--gold-bright);
-  animation: scan-sweep 2.2s ease-in-out infinite;
-}
-
-@keyframes scan-sweep {
-  0% {
-    top: 6%;
-  }
-  50% {
-    top: 90%;
-  }
-  100% {
-    top: 6%;
-  }
-}
-
 .scan-hint {
   position: absolute;
   bottom: 6px;
